@@ -1,0 +1,18 @@
+[package]
+name = "palettes-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bytemuck = { version = "1.15.0", features = ["derive"] }
+eframe = { version = "0.27.2", features = ["wgpu"] }
+egui-wgpu = "0.27.2"
+env_logger = "0.11.3"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
