@@ -9,6 +9,10 @@ struct VertexInput {
     @location(0) position: vec2<f32>,
 }
 
+struct InstanceInput {
+    @location(3) position: vec2<f32>,
+}
+
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
 }
@@ -16,10 +20,12 @@ struct VertexOutput {
 @vertex
 fn vs_main(
     @builtin(vertex_index) in_vertex_index: u32,
-    in: VertexInput,
+    model: VertexInput,
+    instance: InstanceInput,
 ) -> VertexOutput {
     var out: VertexOutput;
-    let relative_position = camera.scale * (in.position - camera.position);
+    let position = model.position + instance.position;
+    let relative_position = camera.scale * (position - camera.position);
     out.clip_position = vec4<f32>(relative_position, 0.0, 1.0);
     return out;
 }

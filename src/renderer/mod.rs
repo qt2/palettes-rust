@@ -30,12 +30,9 @@ impl Renderer {
         //     entries: &[],
         // });
 
-        let camera = Camera {
-            scale: 2.0,
-            ..Default::default()
-        };
+        let camera = Camera::default();
         let camera_buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("camera"),
+            label: Some("camera buffer"),
             contents: bytemuck::cast_slice(&[camera]),
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
@@ -73,7 +70,7 @@ impl Renderer {
             vertex: VertexState {
                 module: &shader,
                 entry_point: "vs_main",
-                buffers: &[Vertex::desc()],
+                buffers: &[Vertex::desc(), Instance::desc()],
             },
             fragment: Some(FragmentState {
                 module: &shader,
@@ -89,15 +86,34 @@ impl Renderer {
             label: Some("vertex buffer"),
             contents: bytemuck::cast_slice(&[
                 Vertex {
-                    position: [0.0, 1.0],
-                },
-                Vertex {
                     position: [-0.5, -0.5],
                 },
                 Vertex {
                     position: [0.5, -0.5],
                 },
+                Vertex {
+                    position: [-0.5, 0.5],
+                },
+                Vertex {
+                    position: [0.5, 0.5],
+                },
             ]),
+            usage: BufferUsages::VERTEX,
+        });
+        let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("index buffer"),
+            contents: bytemuck::cast_slice(&[0u16, 1, 2, 2, 1, 3]),
+            usage: BufferUsages::INDEX,
+        });
+
+        let instances: Vec<Instance> = (0..5)
+            .map(|x| Instance {
+                position: [(2 * x) as f32, 0.0],
+            })
+            .collect();
+        let instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("instance buffer"),
+            contents: bytemuck::cast_slice(&instances),
             usage: BufferUsages::VERTEX,
         });
 
@@ -108,6 +124,8 @@ impl Renderer {
             .insert(PedestrianRenderResources {
                 pipeline,
                 vertex_buffer,
+                index_buffer,
+                instance_buffer,
                 camera_buffer,
                 camera_bind_group,
             });
@@ -170,13 +188,18 @@ impl egui_wgpu::CallbackTrait for CustomCallback {
         render_pass.set_pipeline(&resources.pipeline);
         render_pass.set_bind_group(0, &resources.camera_bind_group, &[]);
         render_pass.set_vertex_buffer(0, resources.vertex_buffer.slice(..));
-        render_pass.draw(0..3, 0..1);
+        render_pass.set_vertex_buffer(1, resources.instance_buffer.slice(..));
+        render_pass.set_index_buffer(resources.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        render_pass.draw_indexed(0..6, 0, 0..5);
+        // render_pass.draw(0..3, 0..1);
     }
 }
 
 struct PedestrianRenderResources {
     pipeline: RenderPipeline,
     vertex_buffer: Buffer,
+    index_buffer: Buffer,
+    instance_buffer: Buffer,
     camera_buffer: Buffer,
     camera_bind_group: BindGroup,
 }
@@ -194,6 +217,24 @@ impl Vertex {
         VertexBufferLayout {
             array_stride: mem::size_of::<Self>() as BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &Self::ATTRIBS,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct Instance {
+    position: [f32; 2],
+}
+
+impl Instance {
+    const ATTRIBS: [VertexAttribute; 1] = wgpu::vertex_attr_array![3  => Float32x2];
+
+    fn desc() -> VertexBufferLayout<'static> {
+        VertexBufferLayout {
+            array_stride: mem::size_of::<Self>() as BufferAddress,
+            step_mode: wgpu::VertexStepMode::Instance,
             attributes: &Self::ATTRIBS,
         }
     }
