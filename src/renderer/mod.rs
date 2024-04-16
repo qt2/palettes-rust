@@ -1,3 +1,5 @@
+mod camera;
+
 use std::mem;
 
 use eframe::{
@@ -5,11 +7,14 @@ use eframe::{
     wgpu::{
         self, include_wgsl,
         util::{BufferInitDescriptor, DeviceExt},
-        Buffer, BufferAddress, BufferUsages, FragmentState, MultisampleState,
-        PipelineLayoutDescriptor, PrimitiveState, RenderPipeline, RenderPipelineDescriptor,
-        VertexAttribute, VertexBufferLayout, VertexState,
+        BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
+        BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferUsages,
+        FragmentState, MultisampleState, PipelineLayoutDescriptor, PrimitiveState, RenderPipeline,
+        RenderPipelineDescriptor, ShaderStages, VertexAttribute, VertexBufferLayout, VertexState,
     },
 };
+
+use self::camera::Camera;
 
 pub struct Renderer {}
 
@@ -22,10 +27,42 @@ impl Renderer {
         //     label: Some("pedestrians"),
         //     entries: &[],
         // });
+
+        let camera = Camera {
+            scale: 2.0,
+            ..Default::default()
+        };
+        let camera_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("camera"),
+            contents: bytemuck::cast_slice(&[camera]),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        });
+        let camera_bind_group_layout =
+            device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                entries: &[BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::VERTEX,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }],
+                label: Some("camera"),
+            });
+        let camera_bind_group = device.create_bind_group(&BindGroupDescriptor {
+            layout: &camera_bind_group_layout,
+            entries: &[BindGroupEntry {
+                binding: 0,
+                resource: camera_buffer.as_entire_binding(),
+            }],
+            label: Some("camera"),
+        });
+
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("pedestrians"),
-            // bind_group_layouts: &[&bind_group_layout],
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&camera_bind_group_layout],
             ..Default::default()
         });
         let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
@@ -69,7 +106,8 @@ impl Renderer {
             .insert(PedestrianRenderResources {
                 pipeline,
                 vertex_buffer,
-                // bind_group,
+                camera_buffer,
+                camera_bind_group,
             });
 
         Renderer {}
@@ -97,6 +135,7 @@ impl egui_wgpu::CallbackTrait for CustomCallback {
         let resources: &PedestrianRenderResources = callback_resources.get().unwrap();
 
         render_pass.set_pipeline(&resources.pipeline);
+        render_pass.set_bind_group(0, &resources.camera_bind_group, &[]);
         render_pass.set_vertex_buffer(0, resources.vertex_buffer.slice(..));
         render_pass.draw(0..3, 0..1);
     }
@@ -105,6 +144,8 @@ impl egui_wgpu::CallbackTrait for CustomCallback {
 struct PedestrianRenderResources {
     pipeline: RenderPipeline,
     vertex_buffer: Buffer,
+    camera_buffer: Buffer,
+    camera_bind_group: BindGroup,
 }
 
 #[repr(C)]
