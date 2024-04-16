@@ -32,7 +32,7 @@ impl eframe::App for App {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("My egui Application");
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                self.renderer.draw_canvas(ui);
+                self.renderer.draw_canvas(ui, ctx);
             });
         });
     }

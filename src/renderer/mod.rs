@@ -16,7 +16,9 @@ use eframe::{
 
 use self::camera::Camera;
 
-pub struct Renderer {}
+pub struct Renderer {
+    camera: Camera,
+}
 
 impl Renderer {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
@@ -110,25 +112,56 @@ impl Renderer {
                 camera_bind_group,
             });
 
-        Renderer {}
+        Renderer { camera }
     }
 
-    pub fn draw_canvas(&mut self, ui: &mut egui::Ui) {
+    pub fn draw_canvas(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         let (rect, response) =
             ui.allocate_exact_size(egui::Vec2::splat(300.0), egui::Sense::drag());
+
+        let delta_wheel_y = ctx.input(|i| i.smooth_scroll_delta).y;
+        self.camera.scale *= 2.0_f32.powf(delta_wheel_y * 0.01);
+
+        let delta_drag = 0.01 * response.drag_delta();
+        self.camera.position[0] -= delta_drag.x;
+        self.camera.position[1] += delta_drag.y;
+
         ui.painter().add(egui_wgpu::Callback::new_paint_callback(
             rect,
-            CustomCallback {},
+            CustomCallback {
+                camera: self.camera.clone(),
+            },
         ));
     }
 }
 
-struct CustomCallback {}
+struct CustomCallback {
+    camera: Camera,
+}
 
 impl egui_wgpu::CallbackTrait for CustomCallback {
+    fn prepare(
+        &self,
+        _device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        _screen_descriptor: &egui_wgpu::ScreenDescriptor,
+        _egui_encoder: &mut wgpu::CommandEncoder,
+        callback_resources: &mut egui_wgpu::CallbackResources,
+    ) -> Vec<wgpu::CommandBuffer> {
+        let resources: &PedestrianRenderResources = callback_resources.get().unwrap();
+
+        queue.write_buffer(
+            &resources.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[self.camera]),
+        );
+
+        Vec::new()
+    }
+
     fn paint<'a>(
         &'a self,
-        info: egui::PaintCallbackInfo,
+        _info: egui::PaintCallbackInfo,
         render_pass: &mut eframe::wgpu::RenderPass<'a>,
         callback_resources: &'a egui_wgpu::CallbackResources,
     ) {
