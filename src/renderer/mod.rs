@@ -148,6 +148,7 @@ impl Renderer {
         let pedestrians: Vec<_> = simulator
             .pedestrians
             .iter()
+            .filter(|p| !p.has_arrived_goal)
             .map(|p| Instance {
                 position: p.position.into(),
             })

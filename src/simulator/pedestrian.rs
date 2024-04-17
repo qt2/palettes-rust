@@ -51,5 +51,9 @@ impl Pedestrian {
 
     pub fn walk(&mut self) {
         self.position += self.velocity * 0.1;
+
+        if (self.position - self.goal).magnitude_squared() < 1.5 * 1.5 {
+            self.has_arrived_goal = true;
+        }
     }
 }
