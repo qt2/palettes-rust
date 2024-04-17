@@ -33,6 +33,19 @@ impl Simulator {
 
 impl Simulator {
     pub fn tick(&mut self) {
+        self.spawn_pedestrians();
+
+        unsafe {
+            let simulator = self as *mut Simulator;
+            self.pedestrians
+                .iter_mut()
+                .for_each(|p| p.determine_accel(&*simulator));
+        }
+
+        self.pedestrians.iter_mut().for_each(|p| p.walk());
+    }
+
+    fn spawn_pedestrians(&mut self) {
         for config in &self.config.pedestrians {
             let mut prob = config.frequency;
             loop {
@@ -56,7 +69,5 @@ impl Simulator {
                 });
             }
         }
-
-        self.pedestrians.iter_mut().for_each(|p| p.walk());
     }
 }
