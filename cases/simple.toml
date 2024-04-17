@@ -1,0 +1,11 @@
+[[gates]]
+vertice = [[-10.0, -2.0], [-10.0, 2.0]]
+
+[[gates]]
+vertice = [[10.0, -2.0], [10.0, 2.0]]
+
+[[pedestrians]]
+from = 0
+to = 1
+frequency = 0.1
+color = "#ff00ff"

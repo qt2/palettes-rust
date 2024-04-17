@@ -12,7 +12,7 @@ impl Default for Camera {
         Camera {
             position: [0.0, 0.0],
             rect: [320.0, 240.0],
-            scale: 1.0,
+            scale: 16.0,
             _padding: 0,
         }
     }

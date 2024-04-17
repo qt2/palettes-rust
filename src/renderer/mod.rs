@@ -14,6 +14,8 @@ use eframe::{
     },
 };
 
+use crate::simulator::Simulator;
+
 use self::camera::Camera;
 
 pub struct Renderer {
@@ -129,24 +131,33 @@ impl Renderer {
         Renderer { camera }
     }
 
-    pub fn draw_canvas(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+    pub fn draw_canvas(&mut self, ui: &mut egui::Ui, ctx: &egui::Context, simulator: &Simulator) {
         let size = ui.available_size();
         let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
 
         let delta_wheel_y = ctx.input(|i| i.smooth_scroll_delta).y;
         self.camera.scale *= 2.0_f32.powf(delta_wheel_y * 0.01);
 
-        let delta_drag = 0.01 * response.drag_delta();
+        let delta_drag = 1.0 * response.drag_delta() / self.camera.scale;
         self.camera.position[0] -= delta_drag.x;
         self.camera.position[1] += delta_drag.y;
 
         let size = rect.size();
         self.camera.rect = [size.x, size.y];
 
+        let pedestrians: Vec<_> = simulator
+            .pedestrians
+            .iter()
+            .map(|p| Instance {
+                position: p.position.into(),
+            })
+            .collect();
+
         ui.painter().add(egui_wgpu::Callback::new_paint_callback(
             rect,
             CustomCallback {
                 camera: self.camera.clone(),
+                pedestrians,
             },
         ));
     }
@@ -154,24 +165,31 @@ impl Renderer {
 
 struct CustomCallback {
     camera: Camera,
+    pedestrians: Vec<Instance>,
 }
 
 impl egui_wgpu::CallbackTrait for CustomCallback {
     fn prepare(
         &self,
-        _device: &wgpu::Device,
+        device: &wgpu::Device,
         queue: &wgpu::Queue,
         _screen_descriptor: &egui_wgpu::ScreenDescriptor,
         _egui_encoder: &mut wgpu::CommandEncoder,
         callback_resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        let resources: &PedestrianRenderResources = callback_resources.get().unwrap();
+        let resources: &mut PedestrianRenderResources = callback_resources.get_mut().unwrap();
 
         queue.write_buffer(
             &resources.camera_buffer,
             0,
             bytemuck::cast_slice(&[self.camera]),
         );
+
+        resources.instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("instance buffer"),
+            contents: bytemuck::cast_slice(&self.pedestrians),
+            usage: BufferUsages::VERTEX,
+        });
 
         Vec::new()
     }
@@ -189,7 +207,7 @@ impl egui_wgpu::CallbackTrait for CustomCallback {
         render_pass.set_vertex_buffer(0, resources.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, resources.instance_buffer.slice(..));
         render_pass.set_index_buffer(resources.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        render_pass.draw_indexed(0..6, 0, 0..5);
+        render_pass.draw_indexed(0..6, 0, 0..self.pedestrians.len() as u32);
         // render_pass.draw(0..3, 0..1);
     }
 }

@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use crate::Vec2;
 
 pub struct Wall {
     pub id: usize,
