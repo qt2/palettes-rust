@@ -1,5 +1,6 @@
 struct Camera {
     position: vec2<f32>,
+    rect: vec2<f32>,
     scale: f32,
 }
 @group(0) @binding(0)
@@ -25,7 +26,7 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     let position = model.position + instance.position;
-    let relative_position = camera.scale * (position - camera.position);
+    let relative_position = camera.scale * (position - camera.position) / camera.rect;
     out.clip_position = vec4<f32>(relative_position, 0.0, 1.0);
     return out;
 }

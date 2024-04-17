@@ -25,10 +25,6 @@ impl Renderer {
         let render_state = cc.wgpu_render_state.as_ref().unwrap();
         let device = &render_state.device;
         let shader = device.create_shader_module(include_wgsl!("./shader.wgsl"));
-        // let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-        //     label: Some("pedestrians"),
-        //     entries: &[],
-        // });
 
         let camera = Camera::default();
         let camera_buffer = device.create_buffer_init(&BufferInitDescriptor {
@@ -134,8 +130,8 @@ impl Renderer {
     }
 
     pub fn draw_canvas(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
-        let (rect, response) =
-            ui.allocate_exact_size(egui::Vec2::splat(300.0), egui::Sense::drag());
+        let size = ui.available_size();
+        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
 
         let delta_wheel_y = ctx.input(|i| i.smooth_scroll_delta).y;
         self.camera.scale *= 2.0_f32.powf(delta_wheel_y * 0.01);
@@ -143,6 +139,9 @@ impl Renderer {
         let delta_drag = 0.01 * response.drag_delta();
         self.camera.position[0] -= delta_drag.x;
         self.camera.position[1] += delta_drag.y;
+
+        let size = rect.size();
+        self.camera.rect = [size.x, size.y];
 
         ui.painter().add(egui_wgpu::Callback::new_paint_callback(
             rect,
