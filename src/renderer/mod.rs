@@ -104,11 +104,7 @@ impl Renderer {
             usage: BufferUsages::INDEX,
         });
 
-        let instances: Vec<Instance> = (0..5)
-            .map(|x| Instance {
-                position: [(2 * x) as f32, 0.0],
-            })
-            .collect();
+        let instances: Vec<Instance> = Vec::new();
         let instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("instance buffer"),
             contents: bytemuck::cast_slice(&instances),
@@ -149,8 +145,12 @@ impl Renderer {
             .pedestrians
             .iter()
             .filter(|p| !p.has_arrived_goal)
-            .map(|p| Instance {
-                position: p.position.into(),
+            .map(|p| {
+                let color = Color::pick(p.trip_id);
+                Instance {
+                    position: p.position.into(),
+                    color: color.into(),
+                }
             })
             .collect();
 
@@ -244,10 +244,11 @@ impl Vertex {
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Instance {
     position: [f32; 2],
+    color: u32,
 }
 
 impl Instance {
-    const ATTRIBS: [VertexAttribute; 1] = wgpu::vertex_attr_array![3  => Float32x2];
+    const ATTRIBS: [VertexAttribute; 2] = wgpu::vertex_attr_array![3  => Float32x2, 4 => Uint32];
 
     fn desc() -> VertexBufferLayout<'static> {
         VertexBufferLayout {
@@ -255,5 +256,47 @@ impl Instance {
             step_mode: wgpu::VertexStepMode::Instance,
             attributes: &Self::ATTRIBS,
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+}
+
+impl Color {
+    const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Color { r, g, b, a }
+    }
+
+    pub const WHITE: Color = Color::new(255, 255, 255, 255);
+    pub const MAGENTA: Color = Color::new(255, 0, 255, 255);
+    pub const YELLOW: Color = Color::new(255, 255, 0, 255);
+    pub const CYAN: Color = Color::new(0, 255, 255, 255);
+    pub const RED: Color = Color::new(255, 0, 0, 255);
+    pub const GREEN: Color = Color::new(0, 255, 0, 255);
+    pub const BLUE: Color = Color::new(0, 0, 255, 255);
+    pub const BLACK: Color = Color::new(0, 0, 0, 255);
+
+    pub const PALLET: [Color; 6] = [
+        Color::MAGENTA,
+        Color::CYAN,
+        Color::YELLOW,
+        Color::RED,
+        Color::BLUE,
+        Color::GREEN,
+    ];
+
+    const fn pick(value: usize) -> Self {
+        Color::PALLET[value % Color::PALLET.len()]
+    }
+}
+
+impl From<Color> for u32 {
+    fn from(c: Color) -> Self {
+        u32::from_le_bytes([c.r, c.g, c.b, c.a])
     }
 }

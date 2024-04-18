@@ -3,6 +3,7 @@ mod gate;
 mod pedestrian;
 mod wall;
 
+use rayon::prelude::*;
 use serde::Deserialize;
 
 pub use self::pedestrian::Pedestrian;
@@ -36,17 +37,18 @@ impl Simulator {
         self.spawn_pedestrians();
 
         unsafe {
-            let simulator = self as *mut Simulator;
+            let simulator = self as *mut Simulator as usize;
             self.pedestrians
-                .iter_mut()
-                .for_each(|p| p.determine_accel(&*simulator));
+                .par_iter_mut()
+                // .iter_mut()
+                .for_each(|p| p.determine_accel(&*(simulator as *mut Simulator)));
         }
 
         self.pedestrians.iter_mut().for_each(|p| p.walk());
     }
 
     fn spawn_pedestrians(&mut self) {
-        for config in &self.config.pedestrians {
+        for (trip_id, config) in self.config.pedestrians.iter().enumerate() {
             let mut prob = config.frequency;
             loop {
                 prob -= fastrand::f32();
@@ -63,6 +65,7 @@ impl Simulator {
 
                 self.pedestrians.push(Pedestrian {
                     position: start,
+                    trip_id,
                     goal,
                     velocity: (goal - start).normalize(),
                     ..Default::default()

@@ -2,7 +2,10 @@ mod renderer;
 mod simulator;
 mod types;
 
-use std::fs;
+use std::{
+    fs,
+    time::{Duration, Instant},
+};
 
 use eframe::egui;
 use simulator::{config::Config, Pedestrian, Simulator};
@@ -24,6 +27,7 @@ fn main() {
 struct App {
     renderer: Renderer,
     simulator: Simulator,
+    simulate_time: Duration,
 }
 
 impl App {
@@ -34,16 +38,24 @@ impl App {
         App {
             renderer: Renderer::new(cc),
             simulator: Simulator::from_config(config),
+            simulate_time: Duration::ZERO,
         }
     }
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let start = Instant::now();
         self.simulator.tick();
+        let duration = Instant::now() - start;
+        self.simulate_time = (self.simulate_time * 15 + duration) / 16;
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("palettes-rust");
+            ui.label(format!(
+                "Simulate time per frame: {:.4}s",
+                self.simulate_time.as_secs_f64()
+            ));
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
                 self.renderer.draw_canvas(ui, ctx, &self.simulator);
             });
