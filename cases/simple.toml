@@ -4,6 +4,12 @@ vertice = [[-20.0, -4.0], [-20.0, 4.0]]
 [[gates]]
 vertice = [[20.0, -4.0], [20.0, 4.0]]
 
+[[walls]]
+vertice = [[-25, 10], [-25, -10]]
+
+[[walls]]
+vertice = [[25, 10], [25, -10]]
+
 [[pedestrians]]
 from = 0
 to = 1

@@ -5,11 +5,17 @@ use crate::Vec2;
 #[derive(Debug, Default, Deserialize)]
 pub struct Config {
     pub gates: Vec<GateConfig>,
+    pub walls: Vec<WallConfig>,
     pub pedestrians: Vec<PedestrianConfig>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct GateConfig {
+    pub vertice: [Vec2; 2],
+}
+
+#[derive(Debug, Deserialize)]
+pub struct WallConfig {
     pub vertice: [Vec2; 2],
 }
 
