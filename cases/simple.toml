@@ -15,11 +15,11 @@ vertice = [[25, 10], [25, -10]]
 to = 1
 # frequency = 0.5
 spawn_rect = [[-1000, -100], [-15, 100]]
-spawn_count = 10000
+spawn_count = 20000
 
 [[pedestrians]]
 # from = 1
 to = 0
 # frequency = 0.5
 spawn_rect = [[1000, -100], [15, 100]]
-spawn_count = 10000
+spawn_count = 20000

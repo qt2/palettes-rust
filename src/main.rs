@@ -102,5 +102,5 @@ impl From<String> for RuntimeKind {
 extern "C" {
     fn hello();
 
-    fn tick_pedestrians(pedestrians: PedestriansT, n: libc::size_t);
+    pub fn tick_pedestrians(pedestrians: PedestriansT, n: libc::size_t);
 }

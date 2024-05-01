@@ -5,7 +5,7 @@ mod wall;
 
 use rayon::prelude::*;
 
-use crate::{RuntimeKind, Vec2};
+use crate::{tick_pedestrians, RuntimeKind, Vec2};
 
 pub use self::pedestrian::{Pedestrian, PedestriansT};
 use self::{config::Config, gate::Gate};
@@ -84,6 +84,7 @@ impl Simulator {
                     #[cfg(feature = "gpu")]
                     {
                         let pedestrians = PedestriansT::from_pedestrians(&self.pedestrians);
+                        tick_pedestrians(pedestrians, self.pedestrians.len());
                     }
 
                     #[cfg(not(feature = "gpu"))]

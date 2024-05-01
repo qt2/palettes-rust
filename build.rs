@@ -4,7 +4,7 @@ fn main() {
         cc::Build::new()
             .cuda(true)
             .flag("-gencode")
-            .flag("arch=compute_20,code=sm_20")
+            .flag("arch=compute_89,code=sm_89")
             .files(["kernels/pedestrians.cu"])
             .compile("kernels");
 
