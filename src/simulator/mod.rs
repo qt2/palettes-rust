@@ -7,7 +7,7 @@ use rayon::prelude::*;
 
 use crate::{RuntimeKind, Vec2};
 
-pub use self::pedestrian::Pedestrian;
+pub use self::pedestrian::{Pedestrian, PedestriansT};
 use self::{config::Config, gate::Gate};
 
 #[derive(Debug, Default)]
@@ -80,7 +80,17 @@ impl Simulator {
                         .par_iter_mut()
                         .for_each(|p| p.determine_accel(&*(simulator as *mut Simulator)));
                 }
-                RuntimeKind::GPU => unimplemented!(),
+                RuntimeKind::GPU => {
+                    #[cfg(feature = "gpu")]
+                    {
+                        let pedestrians = PedestriansT::from_pedestrians(&self.pedestrians);
+                    }
+
+                    #[cfg(not(feature = "gpu"))]
+                    {
+                        panic!("compile with `gpu` feature")
+                    }
+                }
             }
         }
 

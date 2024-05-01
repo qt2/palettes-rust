@@ -94,3 +94,28 @@ impl Pedestrian {
         }
     }
 }
+
+#[repr(C)]
+pub struct PedestriansT {
+    pub x: *mut libc::c_float,
+    pub y: *mut libc::c_float,
+    pub vx: *mut libc::c_float,
+    pub vy: *mut libc::c_float,
+}
+
+impl PedestriansT {
+    pub fn from_pedestrians(pedestrians: &[Pedestrian]) -> Self {
+        let mut x: Vec<_> = pedestrians.iter().map(|p| p.position.x).collect();
+        let mut y: Vec<_> = pedestrians.iter().map(|p| p.position.y).collect();
+        let mut vx: Vec<_> = pedestrians.iter().map(|p| p.velocity.x).collect();
+        let mut vy: Vec<_> = pedestrians.iter().map(|p| p.velocity.y).collect();
+
+        let ps = PedestriansT {
+            x: x.as_mut_ptr(),
+            y: y.as_mut_ptr(),
+            vx: vx.as_mut_ptr(),
+            vy: vy.as_mut_ptr(),
+        };
+        ps
+    }
+}

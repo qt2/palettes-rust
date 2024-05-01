@@ -8,8 +8,7 @@ use std::{
 };
 
 use eframe::egui;
-use serde::Deserialize;
-use simulator::{config::Config, Pedestrian, Simulator};
+use simulator::{config::Config, PedestriansT, Simulator};
 
 use crate::renderer::Renderer;
 pub use crate::types::*;
@@ -102,4 +101,6 @@ impl From<String> for RuntimeKind {
 #[cfg(feature = "gpu")]
 extern "C" {
     fn hello();
+
+    fn tick_pedestrians(pedestrians: PedestriansT, n: libc::size_t);
 }
