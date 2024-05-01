@@ -16,6 +16,11 @@ pub use crate::types::*;
 fn main() {
     env_logger::init();
 
+    #[cfg(feature = "gpu")]
+    unsafe {
+        hello();
+    }
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([960.0, 720.0]),
         renderer: eframe::Renderer::Wgpu,
@@ -67,4 +72,9 @@ impl eframe::App for App {
 
         ctx.request_repaint();
     }
+}
+
+#[cfg(feature = "gpu")]
+extern "C" {
+    fn hello();
 }
