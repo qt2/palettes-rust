@@ -1,8 +1,8 @@
 [[gates]]
-vertice = [[-20.0, -4.0], [-20.0, 4.0]]
+vertice = [[-1000, -100], [-1000, 100]]
 
 [[gates]]
-vertice = [[20.0, -4.0], [20.0, 4.0]]
+vertice = [[1000, -100], [1000, 100]]
 
 [[walls]]
 vertice = [[-25, 10], [-25, -10]]
@@ -11,11 +11,15 @@ vertice = [[-25, 10], [-25, -10]]
 vertice = [[25, 10], [25, -10]]
 
 [[pedestrians]]
-from = 0
+# from = 0
 to = 1
-frequency = 0.5
+# frequency = 0.5
+spawn_rect = [[-1000, -100], [-15, 100]]
+spawn_count = 10000
 
 [[pedestrians]]
-from = 1
+# from = 1
 to = 0
-frequency = 0.5
+# frequency = 0.5
+spawn_rect = [[1000, -100], [15, 100]]
+spawn_count = 10000

@@ -53,7 +53,11 @@ impl eframe::App for App {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("palettes-rust");
             ui.label(format!(
-                "Simulate time per frame: {:.4}s",
+                "Number of pedestrians: {}",
+                self.simulator.pedestrians.len(),
+            ));
+            ui.label(format!(
+                "Calculation time per frame: {:.4}s",
                 self.simulate_time.as_secs_f64()
             ));
             egui::Frame::canvas(ui.style()).show(ui, |ui| {

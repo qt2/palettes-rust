@@ -19,9 +19,17 @@ pub struct WallConfig {
     pub vertice: [Vec2; 2],
 }
 
+// #[derive(Debug, Deserialize)]
+// pub struct PedestrianConfig {
+//     pub from: usize,
+//     pub to: usize,
+//     pub frequency: f32,
+// }
+
 #[derive(Debug, Deserialize)]
 pub struct PedestrianConfig {
-    pub from: usize,
+    // pub from: usize,
     pub to: usize,
-    pub frequency: f32,
+    pub spawn_rect: [Vec2; 2],
+    pub spawn_count: i32,
 }
