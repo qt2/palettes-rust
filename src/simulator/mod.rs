@@ -5,7 +5,7 @@ mod wall;
 
 use rayon::prelude::*;
 
-use crate::Vec2;
+use crate::{RuntimeKind, Vec2};
 
 pub use self::pedestrian::Pedestrian;
 use self::{config::Config, gate::Gate};
@@ -63,15 +63,25 @@ impl Simulator {
 }
 
 impl Simulator {
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self, runtime: RuntimeKind) {
         // self.spawn_pedestrians();
 
         unsafe {
             let simulator = self as *mut Simulator as usize;
-            self.pedestrians
-                // .par_iter_mut()
-                .iter_mut()
-                .for_each(|p| p.determine_accel(&*(simulator as *mut Simulator)));
+
+            match runtime {
+                RuntimeKind::Single => {
+                    self.pedestrians
+                        .iter_mut()
+                        .for_each(|p| p.determine_accel(&*(simulator as *mut Simulator)));
+                }
+                RuntimeKind::Multi => {
+                    self.pedestrians
+                        .par_iter_mut()
+                        .for_each(|p| p.determine_accel(&*(simulator as *mut Simulator)));
+                }
+                RuntimeKind::GPU => unimplemented!(),
+            }
         }
 
         self.pedestrians.iter_mut().for_each(|p| p.walk());

@@ -18,7 +18,7 @@ serde = { version = "1.0.198", features = ["derive"] }
 toml = "0.8.12"
 
 [profile.dev]
-opt-level = 1
+opt-level = 3
 
 [profile.dev.package."*"]
 opt-level = 3

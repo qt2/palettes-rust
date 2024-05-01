@@ -3,11 +3,12 @@ mod simulator;
 mod types;
 
 use std::{
-    fs,
+    env, fs,
     time::{Duration, Instant},
 };
 
 use eframe::egui;
+use serde::Deserialize;
 use simulator::{config::Config, Pedestrian, Simulator};
 
 use crate::renderer::Renderer;
@@ -33,10 +34,14 @@ struct App {
     renderer: Renderer,
     simulator: Simulator,
     simulate_time: Duration,
+    runtime: RuntimeKind,
 }
 
 impl App {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        let runtime = env::args().skip(1).next().unwrap_or("single".into());
+        let runtime = RuntimeKind::from(runtime);
+
         let config = fs::read_to_string("cases/simple.toml").expect("case file not found");
         let config: Config = toml::from_str(&config).unwrap();
 
@@ -44,6 +49,7 @@ impl App {
             renderer: Renderer::new(cc),
             simulator: Simulator::from_config(config),
             simulate_time: Duration::ZERO,
+            runtime,
         }
     }
 }
@@ -51,7 +57,7 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let start = Instant::now();
-        self.simulator.tick();
+        self.simulator.tick(self.runtime);
         let duration = Instant::now() - start;
         self.simulate_time = (self.simulate_time * 15 + duration) / 16;
 
@@ -71,6 +77,25 @@ impl eframe::App for App {
         });
 
         ctx.request_repaint();
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub enum RuntimeKind {
+    #[default]
+    Single,
+    Multi,
+    GPU,
+}
+
+impl From<String> for RuntimeKind {
+    fn from(value: String) -> Self {
+        match value.to_lowercase().as_str() {
+            "single" => RuntimeKind::Single,
+            "multi" => RuntimeKind::Multi,
+            "gpu" => RuntimeKind::GPU,
+            _ => panic!("unsupported runtime kind"),
+        }
     }
 }
 
