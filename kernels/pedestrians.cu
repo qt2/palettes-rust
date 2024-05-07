@@ -11,7 +11,19 @@ static constexpr float SFM_K = 1.2e+5;
 static constexpr float SFM_KAPPA = 2.5e+5;
 static constexpr float AGENT_SIZE = 0.4;
 
-struct {
+#define CHECK(call)                                                \
+    {                                                              \
+        const cudaError_t error = call;                            \
+        if (error != cudaSuccess)                                  \
+        {                                                          \
+            fprintf(stderr, "Error: %s:%d, ", __FILE__, __LINE__); \
+            fprintf(stderr, "code: %d, reason: %s\n", error,       \
+                    cudaGetErrorString(error));                    \
+        }                                                          \
+    }
+
+struct
+{
     float *x;
     float *y;
     float *vx;
@@ -28,9 +40,11 @@ struct {
 // typedef pedestrians_t;
 
 __global__ void calc_accel(pedestrians_t pedestrians, float *axs, float *ays,
-                           size_t n) {
+                           size_t n)
+{
     size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx >= n) {
+    if (idx >= n)
+    {
         return;
     }
 
@@ -40,7 +54,8 @@ __global__ void calc_accel(pedestrians_t pedestrians, float *axs, float *ays,
     float vx = pedestrians.vx[idx];
     float vy = pedestrians.vy[idx];
 
-    for (size_t i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++)
+    {
         float ox = pedestrians.x[i];
         float oy = pedestrians.y[i];
         float ovx = pedestrians.vx[i];
@@ -49,7 +64,8 @@ __global__ void calc_accel(pedestrians_t pedestrians, float *axs, float *ays,
         float dirx = x - ox;
         float diry = y - oy;
         float d = hypotf(dirx, diry);
-        if (d > 2.0f || d < 1e-9f) {
+        if (d > 2.0f || d < 1e-9f)
+        {
             continue;
         }
 
@@ -59,7 +75,8 @@ __global__ void calc_accel(pedestrians_t pedestrians, float *axs, float *ays,
         float ny = diry / d;
         float sfx = 0.0f;
         float sfy = 0.0f;
-        if (diff >= 0.0f) {
+        if (diff >= 0.0f)
+        {
             sfx += nx * SFM_K * diff;
             sfy += ny * SFM_K * diff;
             float tx = -ny;
@@ -77,11 +94,12 @@ __global__ void calc_accel(pedestrians_t pedestrians, float *axs, float *ays,
     ays[idx] = ay;
 }
 
-extern "C" void tick_pedestrians(pedestrians_t pedestrians, size_t n) {
+extern "C" void tick_pedestrians(pedestrians_t pedestrians, size_t n)
+{
     size_t bytes = sizeof(float) * n;
 
     float *axs, *ays;
-    cudaMalloc(&axs, bytes);
+    CHECK(cudaMalloc(&axs, bytes));
     cudaMemset(axs, 0, bytes);
     cudaMalloc(&ays, bytes);
     cudaMemset(ays, 0, bytes);
