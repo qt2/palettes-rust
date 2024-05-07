@@ -1,6 +1,6 @@
-mod renderer;
-mod simulator;
-mod types;
+pub mod renderer;
+pub mod simulator;
+pub mod types;
 
 use std::{
     env, fs,
@@ -21,12 +21,39 @@ fn main() {
         hello();
     }
 
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([960.0, 720.0]),
-        renderer: eframe::Renderer::Wgpu,
-        ..Default::default()
-    };
-    eframe::run_native("Pallets", options, Box::new(|cc| Box::new(App::new(cc)))).unwrap();
+    #[cfg(not(feature = "headless"))]
+    {
+        let options = eframe::NativeOptions {
+            viewport: egui::ViewportBuilder::default().with_inner_size([960.0, 720.0]),
+            renderer: eframe::Renderer::Wgpu,
+            ..Default::default()
+        };
+        eframe::run_native("Pallets", options, Box::new(|cc| Box::new(App::new(cc)))).unwrap();
+    }
+
+    #[cfg(feature = "headless")]
+    {
+        let runtime = env::args().skip(1).next().unwrap_or("single".into());
+        let runtime = RuntimeKind::from(runtime);
+
+        let config = fs::read_to_string("cases/simple.toml").expect("case file not found");
+        let config: Config = toml::from_str(&config).unwrap();
+
+        let mut simulator = Simulator::from_config(config);
+
+        let mut cum_duration = Duration::ZERO;
+        loop {
+            let start = Instant::now();
+            simulator.tick(runtime);
+            let duration = Instant::now() - start;
+            cum_duration += duration;
+
+            if cum_duration > Duration::from_secs(1) {
+                println!("Calculation time per frame: {:.4}s", duration.as_secs_f64());
+                cum_duration = Duration::ZERO;
+            }
+        }
+    }
 }
 
 struct App {

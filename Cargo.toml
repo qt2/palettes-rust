@@ -29,3 +29,4 @@ cc = "1.0.96"
 [features]
 default = ["gpu"]
 gpu = []
+headless = []
