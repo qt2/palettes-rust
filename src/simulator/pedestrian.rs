@@ -80,6 +80,40 @@ impl Pedestrian {
         }
     }
 
+    pub fn calc_force_from_goal(&mut self) {
+        self.accel = Vec2::zeros();
+        let direction = (self.goal - self.position).normalize();
+        self.accel += (self.max_velocity * direction - self.velocity) / SFM_TAU;
+    }
+
+    pub fn calc_pedestrians_interaction(&mut self, simulator: &Simulator) {
+        // calculate force from pedestrians
+        // skips if it is very close to its goal for easing congenstion.
+        if (self.goal - self.position).magnitude_squared() > 4.0 {
+            for pedestrian in &simulator.pedestrians {
+                let direction = self.position - pedestrian.position;
+                let d = direction.magnitude();
+                if d > 2.0 || d < 1e-9 {
+                    continue;
+                }
+
+                let r = 2.0 * AGENT_SIZE;
+                let diff = r - d;
+                let n = direction.normalize();
+
+                let mut sf = Vec2::zeros();
+                if diff >= 0.0 {
+                    sf += n * SFM_K * diff;
+                    let t = Vec2::new(-n.y, n.x);
+                    let tvd = (pedestrian.velocity - self.velocity).dot(&t);
+                    sf += t * (SFM_KAPPA * diff * tvd);
+                }
+
+                self.accel += sf / SFM_MASS;
+            }
+        }
+    }
+
     pub fn walk(&mut self) {
         let previous_velocity = self.velocity;
         self.velocity += self.accel * 0.1;

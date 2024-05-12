@@ -3,6 +3,8 @@ mod gate;
 mod pedestrian;
 mod wall;
 
+use std::time::Instant;
+
 use rayon::prelude::*;
 
 use crate::{tick_pedestrians, RuntimeKind, Vec2};
@@ -71,9 +73,30 @@ impl Simulator {
 
             match runtime {
                 RuntimeKind::Single => {
+                    let mut time = Instant::now();
+
                     self.pedestrians
                         .iter_mut()
-                        .for_each(|p| p.determine_accel(&*(simulator as *mut Simulator)));
+                        .for_each(|p| p.calc_force_from_goal());
+
+                    let duration_goal = Instant::now() - time;
+                    time = Instant::now();
+
+                    self.pedestrians.iter_mut().for_each(|p| {
+                        p.calc_pedestrians_interaction(&*(simulator as *mut Simulator))
+                    });
+
+                    let duration_pedestrians = Instant::now() - time;
+
+                    println!(
+                        "Goal: {:.4}s, Pedestrians: {:.4}s",
+                        duration_goal.as_secs_f64(),
+                        duration_pedestrians.as_secs_f64()
+                    );
+
+                    // self.pedestrians
+                    //     .iter_mut()
+                    //     .for_each(|p| p.determine_accel(&*(simulator as *mut Simulator)));
                 }
                 RuntimeKind::Multi => {
                     self.pedestrians
