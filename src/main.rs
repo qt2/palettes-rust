@@ -48,10 +48,12 @@ fn main() {
             let duration = Instant::now() - start;
             cum_duration += duration;
 
-            if cum_duration > Duration::from_secs(1) {
-                println!("Calculation time per frame: {:.4}s", duration.as_secs_f64());
-                cum_duration = Duration::ZERO;
-            }
+            println!("Calculation time per frame: {:.4}s", duration.as_secs_f64());
+
+            // if cum_duration > Duration::from_secs(1) {
+            //     println!("Calculation time per frame: {:.4}s", duration.as_secs_f64());
+            //     cum_duration = Duration::ZERO;
+            // }
         }
     }
 }
@@ -111,6 +113,7 @@ pub enum RuntimeKind {
     #[default]
     Single,
     Multi,
+    Neighbor,
     GPU,
 }
 
@@ -119,6 +122,7 @@ impl From<String> for RuntimeKind {
         match value.to_lowercase().as_str() {
             "single" => RuntimeKind::Single,
             "multi" => RuntimeKind::Multi,
+            "neighbor" => RuntimeKind::Neighbor,
             "gpu" => RuntimeKind::GPU,
             _ => panic!("unsupported runtime kind"),
         }

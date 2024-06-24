@@ -27,6 +27,6 @@ opt-level = 3
 cc = "1.0.96"
 
 [features]
-default = ["gpu"]
+default = []
 gpu = []
 headless = []

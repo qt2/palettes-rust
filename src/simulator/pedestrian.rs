@@ -46,7 +46,11 @@ impl Default for Pedestrian {
 }
 
 impl Pedestrian {
-    pub fn determine_accel(&mut self, simulator: &Simulator) {
+    pub fn determine_accel(
+        &mut self,
+        pedestrians: &Vec<Pedestrian>,
+        neighbor_list: Option<&Vec<usize>>,
+    ) {
         self.accel = Vec2::zeros();
 
         // calculate force from the goal
@@ -55,29 +59,58 @@ impl Pedestrian {
 
         // calculate force from pedestrians
         // skips if it is very close to its goal for easing congenstion.
+
         if (self.goal - self.position).magnitude_squared() > 4.0 {
-            for pedestrian in &simulator.pedestrians {
-                let direction = self.position - pedestrian.position;
-                let d = direction.magnitude();
-                if d > 2.0 || d < 1e-9 {
-                    continue;
+            if let Some(indice) = neighbor_list {
+                for &i in indice {
+                    if let Some(accel) = self.calc_accel(&pedestrians[i]) {
+                        self.accel += accel;
+                    }
                 }
-
-                let r = 2.0 * AGENT_SIZE;
-                let diff = r - d;
-                let n = direction.normalize();
-
-                let mut sf = Vec2::zeros();
-                if diff >= 0.0 {
-                    sf += n * SFM_K * diff;
-                    let t = Vec2::new(-n.y, n.x);
-                    let tvd = (pedestrian.velocity - self.velocity).dot(&t);
-                    sf += t * (SFM_KAPPA * diff * tvd);
+            } else {
+                for pedestrian in pedestrians {
+                    if let Some(accel) = self.calc_accel(pedestrian) {
+                        self.accel += accel;
+                    }
                 }
-
-                self.accel += sf / SFM_MASS;
             }
         }
+    }
+
+    fn calc_accel(&self, pedestrian: &Pedestrian) -> Option<Vec2> {
+        let direction = self.position - pedestrian.position;
+        let d = direction.magnitude();
+        if d > 2.0 || d < 1e-9 {
+            return None;
+        }
+
+        let r = 2.0 * AGENT_SIZE;
+        let diff = r - d;
+        let n = direction.normalize();
+
+        let mut sf = Vec2::zeros();
+        if diff >= 0.0 {
+            sf += n * SFM_K * diff;
+            let t = Vec2::new(-n.y, n.x);
+            let tvd = (pedestrian.velocity - self.velocity).dot(&t);
+            sf += t * (SFM_KAPPA * diff * tvd);
+        }
+
+        Some(sf / SFM_MASS)
+    }
+
+    pub fn create_neighbor_list(&self, pedestrians: &Vec<Pedestrian>) -> Vec<usize> {
+        pedestrians
+            .iter()
+            .enumerate()
+            .filter_map(|(i, p)| {
+                if (self.position - p.position).magnitude_squared() < 40.0 {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     pub fn calc_force_from_goal(&mut self) {

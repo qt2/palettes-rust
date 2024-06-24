@@ -3,20 +3,24 @@ mod gate;
 mod pedestrian;
 mod wall;
 
-use std::time::Instant;
+use std::{borrow::BorrowMut, time::Instant};
 
 use rayon::prelude::*;
 
-use crate::{tick_pedestrians, RuntimeKind, Vec2};
+#[cfg(feature = "gpu")]
+use self::pedestrian::tick_pedestrians;
 
 pub use self::pedestrian::{Pedestrian, PedestriansT};
 use self::{config::Config, gate::Gate};
+use crate::{RuntimeKind, Vec2};
 
 #[derive(Debug, Default)]
 pub struct Simulator {
     pub config: Config,
     pub gates: Vec<Gate>,
     pub pedestrians: Vec<Pedestrian>,
+    pub neighbor_lists: Vec<Vec<usize>>,
+    pub step: i32,
 }
 
 impl Simulator {
@@ -29,7 +33,7 @@ impl Simulator {
             .map(|c| Gate { vertice: c.vertice })
             .collect();
 
-        let pedestrians = config
+        let pedestrians: Vec<_> = config
             .pedestrians
             .iter()
             .enumerate()
@@ -55,11 +59,14 @@ impl Simulator {
             })
             .collect();
 
+        let neighbor_lists = vec![vec![]; pedestrians.len()];
+
         Simulator {
             config,
             gates,
             pedestrians,
-            ..Default::default()
+            neighbor_lists,
+            step: 0,
         }
     }
 }
@@ -69,7 +76,7 @@ impl Simulator {
         // self.spawn_pedestrians();
 
         unsafe {
-            let simulator = self as *mut Simulator as usize;
+            let simulator: &Simulator = &*(self as *mut Simulator);
 
             match runtime {
                 RuntimeKind::Single => {
@@ -82,9 +89,9 @@ impl Simulator {
                     let duration_goal = Instant::now() - time;
                     time = Instant::now();
 
-                    self.pedestrians.iter_mut().for_each(|p| {
-                        p.calc_pedestrians_interaction(&*(simulator as *mut Simulator))
-                    });
+                    self.pedestrians
+                        .iter_mut()
+                        .for_each(|p| p.calc_pedestrians_interaction(simulator));
 
                     let duration_pedestrians = Instant::now() - time;
 
@@ -101,7 +108,25 @@ impl Simulator {
                 RuntimeKind::Multi => {
                     self.pedestrians
                         .par_iter_mut()
-                        .for_each(|p| p.determine_accel(&*(simulator as *mut Simulator)));
+                        .for_each(|p| p.determine_accel(&simulator.pedestrians, None));
+                }
+                RuntimeKind::Neighbor => {
+                    if self.step % 20 == 0 {
+                        self.neighbor_lists = self
+                            .pedestrians
+                            .par_iter()
+                            .map(|p| p.create_neighbor_list(&simulator.pedestrians))
+                            .collect();
+                    }
+                    self.pedestrians
+                        .par_iter_mut()
+                        .enumerate()
+                        .for_each(|(i, p)| {
+                            p.determine_accel(
+                                &simulator.pedestrians,
+                                Some(&simulator.neighbor_lists[i]),
+                            )
+                        });
                 }
                 RuntimeKind::GPU => {
                     #[cfg(feature = "gpu")]
@@ -119,6 +144,8 @@ impl Simulator {
         }
 
         self.pedestrians.iter_mut().for_each(|p| p.walk());
+
+        self.step += 1;
     }
 
     // fn spawn_pedestrians(&mut self) {
